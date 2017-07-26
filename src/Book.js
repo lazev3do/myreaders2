@@ -1,10 +1,10 @@
-import React, {Component} from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import BookShelfChanger from './bookshelfchanger'
 
 function Book(props) {
 
-  let {imageLinks,  authors, id, title, shelves, shelf,onShelfChanged} = props;
+  let {imageLinks,  authors, title, shelves, shelf,onShelfChanged} = props;
 
   return (
     <div className="book">
@@ -21,7 +21,6 @@ function Book(props) {
 }
 
 Book.propTypes = {
-  title: PropTypes.string.isRequired,
   authors: PropTypes.array.isRequired,
   id: PropTypes.string.isRequired,
   title:PropTypes.string.isRequired,

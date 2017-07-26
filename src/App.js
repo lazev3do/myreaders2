@@ -29,30 +29,35 @@ class BooksApp extends React.Component {
     });
   }
 
-  update = (book,shelf)=>{
-    /*
-    **TODO: do the client side: remove from the original shelf and add to the new one
-    * update on the server
-    */
-    //client side
-    this.setState(prevState => {
-      //removing from previous shelf
-      let presentBookShelf = prevState.shelves.get(book.shelf);
-      if(typeof presentBookShelf!=='undefined')
+  moveFromShelfToShelf = (book,oldShelfName,newShelfName) => {
+    let state = Object.assign({}, this.state);
+    let oldShelf = state.shelves.get(oldShelfName);
+    let newShelf =  state.shelves.get(newShelfName);
+    if(typeof oldShelf!=='undefined')
+    {
+      for(let i = 0;i<oldShelf.books.length;i++)
       {
-        for(let i = 0;i<presentBookShelf.books.length;i++)
+        if(oldShelf.books[i].id === book.id)
         {
-          if(presentBookShelf.books[i].id == book.id)
-          {
-            presentBookShelf.books.splice(i,1);
-          }
+          oldShelf.books.splice(i,1);
         }
       }
-      let newBookShelf = prevState.shelves.get(shelf);
-      book.shelf=shelf;
-      newBookShelf.books.push(book);
-      return prevState;
-    })
+    }
+    book.shelf=newShelfName;
+    newShelf.books.push(book);
+    this.setState(state);
+  }
+
+  update = (book,shelf)=>{
+    //updating server side
+    let originalShelf = book.shelf;
+    let destinationShelf = shelf;
+    const book_copy =  Object.assign({}, book);//otherwise Cannot assign to read only property 'shelf' of object '#<Object>'
+    BooksAPI.update(book,shelf).catch(error=>{
+      alert("Error while fetching from server, rolling back changes");
+      this.moveFromShelfToShelf(book_copy,destinationShelf,originalShelf);
+    });
+    this.moveFromShelfToShelf(book_copy,originalShelf,destinationShelf);
   };
 
   render() {

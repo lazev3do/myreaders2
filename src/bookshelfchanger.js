@@ -16,7 +16,6 @@ class BookShelfChanger extends Component {
   render() {
     let {shelves,shelf,onShelfChanged,book} = this.props;
     let {currentShelf} = this.state;
-    let presentShelfName = shelves.get(currentShelf);
     return (
         <div className="book-shelf-changer">
         <select defaultValue={shelf} onChange={(event)=>onShelfChanged(book,event.target.value)}>
