@@ -21,13 +21,18 @@ function Book(props) {
 }
 
 Book.propTypes = {
-  authors: PropTypes.array.isRequired,
+  authors: PropTypes.array,
   id: PropTypes.string.isRequired,
   title:PropTypes.string.isRequired,
   imageLinks:PropTypes.object.isRequired,
   shelves:PropTypes.object.isRequired,
   shelf:PropTypes.string.isRequired,
   onShelfChanged:PropTypes.func.isRequired
+}
+
+Book.defaultProps = {
+  authors:[],
+  imageLinks:{smallThumbnail:"http://i.imgur.com/sJ3CT4V.gif"}
 }
 
 export default Book;

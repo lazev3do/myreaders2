@@ -1,14 +1,22 @@
 import React from 'react'
 import * as BooksAPI from './BooksAPI'
-import { Route } from 'react-router-dom';
+import { Route, history } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './App.css'
 import Shelf from './shelf.js'
+import Book from './Book.js'
 
 class BooksApp extends React.Component {
   state = {
-    shelves: new Map()
+    shelves: new Map(),//a map is used instead of an object
+    query: '',
+    searchResults:[]
   }
+
+  //used to match shelfed books with search results
+  shelfedBooksById = new Map();
+  searchTimeout = -1;
+
   componentDidMount() {
     BooksAPI.getAll().then((books)=>{
       let shelves = new Map([
@@ -26,13 +34,14 @@ class BooksApp extends React.Component {
         shelf.books.push(book);
       });
       this.setState({shelves});
+      this.refreshShelfedBooksById();//everytime there is a change to the shelves the map shelfedBooksById book_id->book is updated
     });
   }
 
   moveFromShelfToShelf = (book,oldShelfName,newShelfName) => {
-    let state = Object.assign({}, this.state);
-    let oldShelf = state.shelves.get(oldShelfName);
-    let newShelf =  state.shelves.get(newShelfName);
+    let shelves =  this.state.shelves;
+    let oldShelf = shelves.get(oldShelfName);
+    let newShelf =  shelves.get(newShelfName);
     if(typeof oldShelf!=='undefined')
     {
       for(let i = 0;i<oldShelf.books.length;i++)
@@ -45,23 +54,68 @@ class BooksApp extends React.Component {
     }
     book.shelf=newShelfName;
     newShelf.books.push(book);
-    this.setState(state);
+    this.refreshShelfedBooksById();
+    this.setState({shelves});
   }
 
   update = (book,shelf)=>{
     //updating server side
     let originalShelf = book.shelf;
     let destinationShelf = shelf;
-    const book_copy =  Object.assign({}, book);//otherwise Cannot assign to read only property 'shelf' of object '#<Object>'
-    BooksAPI.update(book,shelf).catch(error=>{
+    const book_copy =  Object.assign({}, book);//otherwise: Cannot assign to read only property 'shelf' of object '#<Object>'
+    BooksAPI.update(book,shelf).catch(error=>{ //in case there is an error updating the server the client side changeds are rolled-back
       alert("Error while fetching from server, rolling back changes");
       this.moveFromShelfToShelf(book_copy,destinationShelf,originalShelf);
     });
     this.moveFromShelfToShelf(book_copy,originalShelf,destinationShelf);
   };
 
+  refreshShelfedBooksById(){
+    for (var [shelf, shelfedBooks] of this.state.shelves.entries()) {
+      shelfedBooks.books.forEach(shelfedBook=>{
+        this.shelfedBooksById.set(shelfedBook.id,shelfedBook);
+      });
+    }
+  }
+
+  search = (query)=>{
+    this.setState({query});
+    if(this.state.query)
+    {
+      if(this.searchTimeout>-1)
+        clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(()=>{
+        BooksAPI.search(query,20).then(searchResults=>{
+          if(typeof searchResults.error==='undefined')
+          {
+            history.push({
+              pathname: '/search',
+              search: '?query='+query
+            })
+            this.setState({searchResults});
+          }
+        });
+      },500);
+    }
+  }
+  /**
+  TODO: add URL history so it's sharable and add a input check timeout so we have less http requests
+  **/
   render() {
-    const {shelves} = this.state;
+    const {shelves,searchResults} = this.state;
+    let {query} = this.state;
+    let searchResultsToShow = [];
+    searchResults.forEach(book => {
+      let shelfedBook = this.shelfedBooksById.get(book.id);
+      if(typeof shelfedBook!=='undefined')
+      {
+        book.shelf=shelfedBook.shelf;
+      }
+      else {
+        book.shelf="none"; //some of the books were being returned by the search method as already being assigned to a shelf
+      }
+      searchResultsToShow.push(book);
+    });
     return (
       <div>
         <Route exact path="/search" render={()=>(
@@ -69,7 +123,7 @@ class BooksApp extends React.Component {
             <div className="search-books-bar">
               <Link to="/" className="close-search">Close</Link>
               <div className="search-books-input-wrapper">
-                <input type="text" placeholder="Search by title or author"/>
+                <input type="text" onChange={event=>this.search(event.target.value)} value={query} placeholder="Search by title or author"/>
               </div>
             </div>
             <div className="search-books-results">
@@ -77,26 +131,40 @@ class BooksApp extends React.Component {
             </div>
           </div>
         )}/>
-      <Route exact path="/" render={()=>(
-          <div className="list-books">
-            <div className="list-books-title">
-              <h1>MyReads</h1>
-            </div>
-            <div className="list-books-content">
-              <div>
-                {
-                  Array.from(shelves).map(entry=>(
-                    <Shelf onShelfChanged={this.update} shelves={shelves} key={entry[0]} name={entry[1].name} books={entry[1].books} />
-                  ))
-                }
-              </div>
-            </div>
-            <div className="open-search">
-              <Link to="/search">Add a book</Link>
-            </div>
+        <div className="list-books">
+        <Route exact path="/" render={()=>(
+          <div className="list-books-title">
+            <h1>MyReads</h1>
           </div>
         )}/>
+        <div className="list-books-content">
+          <Route exact path="/" render={()=>(
+            <div>
+              {
+                Array.from(shelves).map(entry=>(
+                  <Shelf onShelfChanged={this.update} shelves={shelves} key={entry[0]} name={entry[1].name} books={entry[1].books} />
+                ))
+              }
+            </div>
+          )}/>
+        <Route exact path="/search" render={()=>(
+          <div>
+            <ol className="books-grid">
+            {
+              searchResults.map((book,index)=>(
+              <li key={`li_${book.id}_${index}`}>
+                <Book onShelfChanged={this.update} shelves={shelves} key={`book_${book.id}_${index}`} {...book} />
+              </li>
+            ))}
+            </ol>
+          </div>
+        )}/>
+        </div>
+        <div className="open-search">
+          <Link to="/search">Add a book</Link>
+        </div>
       </div>
+    </div>
     )
   }
 }

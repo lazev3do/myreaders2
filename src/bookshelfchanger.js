@@ -13,12 +13,18 @@ class BookShelfChanger extends Component {
     currentShelf : this.props.shelf
   }
 
+  shelfChanged = (event) =>{
+    let {onShelfChanged,book} = this.props;
+    this.setState({currentShelf:event.target.value});
+    onShelfChanged(book,event.target.value);
+  }
+
   render() {
-    let {shelves,shelf,onShelfChanged,book} = this.props;
+    let {shelves,shelf} = this.props;
     let {currentShelf} = this.state;
     return (
         <div className="book-shelf-changer">
-        <select defaultValue={shelf} onChange={(event)=>onShelfChanged(book,event.target.value)}>
+        <select value={currentShelf} onChange={(event)=>this.shelfChanged(event)}>
           <option value="none" disabled>Move to...</option>
           {
             Array.from(shelves.keys()).map((shelfName,index) => (
