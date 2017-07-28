@@ -1,12 +1,27 @@
 import React from 'react'
 import * as BooksAPI from './BooksAPI'
-import { Route } from 'react-router-dom';
+import { Route, withRouter } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './App.css'
 import Shelf from './shelf.js'
 import Book from './Book.js'
 
 class BooksApp extends React.Component {
+
+  static getQueryParams(qs) {
+    qs = qs.split('+').join(' ');
+
+    var params = {},
+        tokens,
+        re = /[?&]?([^=]+)=([^&]*)/g;
+
+    while (tokens = re.exec(qs)) {
+        params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+    }
+
+    return params;
+}
+
   state = {
     shelves: new Map(),//a map is used instead of an object
     query: '',
@@ -36,6 +51,7 @@ class BooksApp extends React.Component {
       this.setState({shelves});
       this.refreshShelfedBooksById();//everytime there is a change to the shelves the map shelfedBooksById book_id->book is updated
     });
+    this.search(BooksApp.getQueryParams(this.props.location.search)['query'] || '');
   }
 
   moveFromShelfToShelf = (book,oldShelfName,newShelfName) => {
@@ -80,27 +96,22 @@ class BooksApp extends React.Component {
 
   search = (query)=>{
     this.setState({query});
-    if(this.state.query)
+    console.debug("State: "+this.state.query);
+    if(query)
     {
       if(this.searchTimeout>-1)
         clearTimeout(this.searchTimeout);
       this.searchTimeout = setTimeout(()=>{
+        this.props.history.push(`/search?query=${query}`)
         BooksAPI.search(query,20).then(searchResults=>{
           if(typeof searchResults.error==='undefined')
           {
-            history.push({
-              pathname: '/search',
-              search: '?query='+query
-            })
             this.setState({searchResults});
           }
         });
       },500);
     }
   }
-  /**
-  TODO: add URL history so it's sharable and add a input check timeout so we have less http requests
-  **/
   render() {
     const {shelves,searchResults} = this.state;
     let {query} = this.state;
@@ -169,4 +180,4 @@ class BooksApp extends React.Component {
   }
 }
 
-export default BooksApp
+export default withRouter(BooksApp)
