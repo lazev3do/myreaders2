@@ -9,6 +9,7 @@ import Book from './Book.js'
 class BooksApp extends React.Component {
 
   //used to get query parameters from shareable search URl i.e: /search?query=android
+  // taken from stackoverflow
   static getQueryParams(qs) {
     qs = qs.split('+').join(' ');
 
