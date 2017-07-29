@@ -14,14 +14,21 @@ class BookShelfChanger extends Component {
   }
 
   shelfChanged = (event) =>{
-    let {onShelfChanged,book} = this.props;
+    const {onShelfChanged,book} = this.props;
     this.setState({currentShelf:event.target.value});
     onShelfChanged(book,event.target.value);
   }
 
+  componentWillReceiveProps(nextProps){
+    if(nextProps.shelf!==this.state.currentShelf)//when an update fales the boolShelfChanged is created with new props using the shelf info before the updated was tried
+    {
+      this.setState({currentShelf:nextProps.shelf});
+    }
+  }
+
   render() {
-    let {shelves,shelf} = this.props;
-    let {currentShelf} = this.state;
+    const {shelves} = this.props;
+    const {currentShelf} = this.state;
     return (
         <div className="book-shelf-changer">
         <select value={currentShelf} onChange={(event)=>this.shelfChanged(event)}>

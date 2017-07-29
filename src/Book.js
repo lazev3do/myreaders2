@@ -1,10 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import BookShelfChanger from './bookshelfchanger'
+import BookShelfChanger from './BookShelfChanger'
 
+/**
+* A Book doesn't need any state ,as such it's a Stateless Functional Component
+**/
 function Book(props) {
 
-  let {imageLinks,  authors, title, shelves, shelf,onShelfChanged} = props;
+  const {imageLinks,  authors, title, shelves, shelf,onShelfChanged} = props;
 
   return (
     <div className="book">
@@ -29,7 +32,7 @@ Book.propTypes = {
   shelf:PropTypes.string.isRequired,
   onShelfChanged:PropTypes.func.isRequired
 }
-
+//some of the books returned by the search didn't have these fields set
 Book.defaultProps = {
   authors:[],
   imageLinks:{smallThumbnail:"http://i.imgur.com/sJ3CT4V.gif"}

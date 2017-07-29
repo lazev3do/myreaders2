@@ -3,15 +3,16 @@ import * as BooksAPI from './BooksAPI'
 import { Route, withRouter } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './App.css'
-import Shelf from './shelf.js'
+import Shelf from './Shelf.js'
 import Book from './Book.js'
 
 class BooksApp extends React.Component {
 
+  //used to get query parameters from shareable search URl i.e: /search?query=android
   static getQueryParams(qs) {
     qs = qs.split('+').join(' ');
 
-    var params = {},
+    let params = {},
         tokens,
         re = /[?&]?([^=]+)=([^&]*)/g;
 
@@ -30,11 +31,11 @@ class BooksApp extends React.Component {
 
   //used to match shelfed books with search results
   shelfedBooksById = new Map();
-  searchTimeout = -1;
+  searchTimeout = -1;//used to better handle when a search is triggered
 
   componentDidMount() {
     BooksAPI.getAll().then((books)=>{
-      let shelves = new Map([
+      const shelves = new Map([
         ["currentlyReading",{name:"Currenty Reading",books:[]}],
         ["wantToRead",{name:"Want to Read",books:[]}],
         ["read",{name:"Read",books:[]}]
@@ -48,16 +49,21 @@ class BooksApp extends React.Component {
         }
         shelf.books.push(book);
       });
-      this.setState({shelves});
+      this.setState((state)=>(
+        {shelves:shelves,searchResults:state.searchResults}
+      ));
       this.refreshShelfedBooksById();//everytime there is a change to the shelves the map shelfedBooksById book_id->book is updated
     });
     this.search(BooksApp.getQueryParams(this.props.location.search)['query'] || '');
   }
 
+  /**
+  * @description Client side moving books from one shelf to another
+  **/
   moveFromShelfToShelf = (book,oldShelfName,newShelfName) => {
-    let shelves =  this.state.shelves;
-    let oldShelf = shelves.get(oldShelfName);
-    let newShelf =  shelves.get(newShelfName);
+    const shelves =  this.state.shelves;
+    const oldShelf = shelves.get(oldShelfName);
+    const newShelf =  shelves.get(newShelfName);
     if(typeof oldShelf!=='undefined')
     {
       for(let i = 0;i<oldShelf.books.length;i++)
@@ -69,23 +75,24 @@ class BooksApp extends React.Component {
       }
     }
     book.shelf=newShelfName;
-    newShelf.books.push(book);
+    if(newShelf)
+      newShelf.books.push(book);
     this.refreshShelfedBooksById();
     this.setState({shelves});
   }
 
   update = (book,shelf)=>{
     //updating server side
-    let originalShelf = book.shelf;
-    let destinationShelf = shelf;
+    const originalShelf = book.shelf;
+    const destinationShelf = shelf;
     const book_copy =  Object.assign({}, book);//otherwise: Cannot assign to read only property 'shelf' of object '#<Object>'
-    BooksAPI.update(book,shelf).catch(error=>{ //in case there is an error updating the server the client side changeds are rolled-back
+    BooksAPI.update(book,shelf).catch(error=>{ //in case there is an error updating the server the client side changes are rolled-back
       alert("Error while fetching from server, rolling back changes");
       this.moveFromShelfToShelf(book_copy,destinationShelf,originalShelf);
     });
     this.moveFromShelfToShelf(book_copy,originalShelf,destinationShelf);
   };
-
+  //maintanes the Map which connects the shelfed Books' IDs so before a render we can set the correct shelf
   refreshShelfedBooksById(){
     for (var [shelf, shelfedBooks] of this.state.shelves.entries()) {
       shelfedBooks.books.forEach(shelfedBook=>{
@@ -93,10 +100,13 @@ class BooksApp extends React.Component {
       });
     }
   }
-
+  /**
+  * @description Searches for books when the search field isn't changed for half a second instead of fireing several
+  * search requests.
+  * Also changes the URL GET Parameters so the search is shareable
+  **/
   search = (query)=>{
     this.setState({query});
-    console.debug("State: "+this.state.query);
     if(query)
     {
       if(this.searchTimeout>-1)
@@ -114,8 +124,8 @@ class BooksApp extends React.Component {
   }
   render() {
     const {shelves,searchResults} = this.state;
-    let {query} = this.state;
-    let searchResultsToShow = [];
+    const {query} = this.state;
+    const searchResultsToShow = [];
     searchResults.forEach(book => {
       let shelfedBook = this.shelfedBooksById.get(book.id);
       if(typeof shelfedBook!=='undefined')
@@ -180,4 +190,5 @@ class BooksApp extends React.Component {
   }
 }
 
+//using the withRouter it's possible to access the history prop whenever I need it in the code
 export default withRouter(BooksApp)
