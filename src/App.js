@@ -3,8 +3,8 @@ import * as BooksAPI from './BooksAPI'
 import { Route, withRouter } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './App.css'
-import Shelf from './Shelf.js'
-import Book from './Book.js'
+import Shelf from './Shelf'
+import Book from './Book'
 
 class BooksApp extends React.Component {
 
